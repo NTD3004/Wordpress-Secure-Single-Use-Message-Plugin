@@ -1,7 +1,7 @@
 # Wordpress-Secure-Single-Use-Message-Plugin
 The contents of this message can only be viewed once
 
-=== single-use message ===
+=== single-use message === <br />
 Contributors: ntd3004
 Donate link: http://paypal.me/ntd3004
 Tags: message, ssms, secure message, single use message
