@@ -1,6 +1,6 @@
 <?php
 
-class SSMS
+class NTD_SecureMessage
 {
 	private $table_name;
 	public $message_id;
@@ -9,7 +9,7 @@ class SSMS
 	{
 		global $wpdb;
 
-		$this->table_name = $wpdb->prefix . 'securemessage';
+		$this->table_name = 'ntd_securemessage';
 	}
 
 	/**
@@ -48,6 +48,18 @@ class SSMS
 		);
 
 		$this->message_id = $wpdb->insert_id;
+	}
+
+	public function updateMessageById($message_id, $message) {
+		global $wpdb;
+
+		$wpdb->update( 
+			$this->table_name, 
+			array( 
+				'message' => trim($message)
+			), 
+			array( 'id' => $message_id )
+		);
 	}
 
 	/**

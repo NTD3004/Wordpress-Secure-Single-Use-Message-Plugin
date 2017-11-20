@@ -9,7 +9,7 @@ Version: 1.0
 Author: NTD3004
 License: GPLv2 or later
 */
-session_start();
+//session_start();
 
 if ( ! defined( 'NTD_SECUREMESSAGE_BASE_FILE' ) )
     define( 'NTD_SECUREMESSAGE_BASE_FILE', __FILE__ );
@@ -20,21 +20,22 @@ if ( ! defined( 'NTD_SECUREMESSAGE_PLUGIN_URL' ) )
 
 //include_once( ABSPATH . 'wp-admin/includes/plugin.php' ); //for check plugin status
 
-register_activation_hook( __FILE__, 'plugin_activation' );
-register_deactivation_hook( __FILE__, 'plugin_deactivation' );
+register_activation_hook( NTD_SECUREMESSAGE_BASE_FILE, 'ntd_securemessage_plugin_activation' );
+register_deactivation_hook( NTD_SECUREMESSAGE_BASE_FILE, 'ntd_securemessage_plugin_deactivation' );
 
 include('lib/ssms.php'); //include library
+include('lib/custom_admin_notices.php'); //include library
 include('includes/settings.php');
 include('includes/shortcodes.php');
 
 //==============================//
 //===========FUNCTIONS==========//
 
-function plugin_activation() 
+function ntd_securemessage_plugin_activation() 
 {
 	global $wpdb;
 
-    $sql = "CREATE TABLE IF NOT EXISTS `".$wpdb->prefix . 'securemessage'."` (
+    $sql = "CREATE TABLE IF NOT EXISTS `ntd_securemessage` (
 `id` INT(255) NOT NULL AUTO_INCREMENT,
 `message` mediumtext NOT NULL,
 `viewed` tinyint(1) NOT NULL,
@@ -47,52 +48,66 @@ PRIMARY KEY (`id`)
     dbDelta( $sql );
 }
 
-function plugin_deactivation()
+function ntd_securemessage_plugin_deactivation()
 {
 	global $wpdb;
 
-	$sql = "DROP TABLE IF EXISTS `" .$wpdb->prefix . 'securemessage'. "`";
+	$sql = "DROP TABLE IF EXISTS `ntd_securemessage`";
 	$wpdb->query($sql);
 }
 
-add_action('wp_enqueue_scripts','ub_ssms_assets');
-function ub_ssms_assets() {
+add_action('wp_enqueue_scripts','ntd_securemessage_assets');
+function ntd_securemessage_assets() {
 	if( !wp_script_is('jquery', 'enqueued') ) {
 		wp_enqueue_script('jquery');
 	}
 }
 
-add_action('init','ssms_init_actions',11);
-function ssms_init_actions()
+add_action('init','ntd_securemessage_init_actions',11);
+function ntd_securemessage_init_actions()
 {
-	$ssms = new SSMS();
+	if(session_id() == '') {
+		session_start();
+	}
+
+	$ssms = new NTD_SecureMessage();
 
 	// Save the message that was posted from the form
-	if (isset($_POST['ssmsmessage'])) {
-		if(!isset($_SESSION['message_id'])) {
-			if (base64_encode(trim($_POST['ssmsmessage']))) {
-				$ssms->saveMessage(base64_encode(trim($_POST['ssmsmessage'])));
-				$_SESSION['message_id'] = $ssms->message_id;
-			}
+	if (isset($_POST['ntd_secure_message'])) {
+		if(strlen(trim($_POST['ntd_secure_message'])) == 0) { //validate the message
+			new NTD_CustomAdminNotices( 'The message field is required.', false );
 		} else {
-			global $wp;
-			$messageid = $_SESSION['message_id'];
-			$result = $ssms->getMessageById($messageid);
-			if(!$result) {
-				unset($_SESSION['message_id']);
-			}
+			$message = sanitize_text_field(trim(esc_html($_POST['ntd_secure_message'])));
+			if(!isset($_SESSION['ntd_securemessage_id'])) { //insert new message 
+				if (base64_encode($message)) {
+					$ssms->saveMessage(base64_encode($message));
+					$_SESSION['ntd_securemessage_id'] = $ssms->message_id;
+					new NTD_CustomAdminNotices( 'Inserted successfully!' );
+				}
+			} else {
+				global $wp;
+				$messageid = $_SESSION['ntd_securemessage_id'];
+				$result = $ssms->getMessageById($messageid);
+				if(!$result) { //the message has been read
+					unset($_SESSION['ntd_securemessage_id']);
 
-			parse_str($_SERVER['QUERY_STRING'], $vars);
-			$queryString = http_build_query($vars);
-			wp_redirect(admin_url('/admin.php?'.$queryString, 'http'), 301);
+					parse_str($_SERVER['QUERY_STRING'], $vars);
+					$queryString = http_build_query($vars);
+
+					wp_redirect(admin_url('/admin.php?'.$queryString, 'http'), 301);
+				} else { //otherwise update the message
+					$ssms->updateMessageById($messageid, base64_encode($message));
+					new NTD_CustomAdminNotices( 'Updated successfully!' );
+				}
+			}
 		}
 	}
 
-	if(isset($_GET['ssmsaction']) and $_GET['ssmsaction'] == 'refreshssms' ) {
-		unset($_SESSION['message_id']);
+	if(isset($_GET['ntd_securemessage_action']) and $_GET['ntd_securemessage_action'] == 'refreshssms' ) { //refresh to create new message
+		unset($_SESSION['ntd_securemessage_id']);
 		parse_str($_SERVER['QUERY_STRING'], $vars);
-		if(isset($vars['ssmsaction'])) {
-			unset($vars['ssmsaction']);
+		if(isset($vars['ntd_securemessage_action'])) { //make sure we will pass all necessary url query parameters of previous page
+			unset($vars['ntd_securemessage_action']);
 			$queryString = http_build_query($vars);
 			wp_redirect(admin_url('/admin.php?'.$queryString, 'http'), 301);
 		}

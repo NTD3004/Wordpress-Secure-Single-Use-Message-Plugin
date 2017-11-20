@@ -5,25 +5,10 @@ function securemessage($atts,$content='')
 	extract(shortcode_atts(array(
 		'id' => '',
 		'description'  => 'Secure single-use message system',
-		'header_text' => 'Use this form to generate a secure single-use message that can only be read ONCE by the recipient. When you are done composing your message, click the button to generate a unique URL that you can send to your intended recipient. Contents of the message are destroyed on the server as soon as the message has been retrieved.',
-		'header_text2' => 'The contents of this message can only be viewed once. If you came here, and the message is not viewable, then this message has already been read. Contents are destroyed on the server as soon as the message has been read.'
-
+		'header_text' => 'Use this form to generate a secure single-use message that can only be read ONCE by the recipient. When you are done composing your message, click the button to generate a unique URL that you can send to your intended recipient. Contents of the message are destroyed on the server as soon as the message has been retrieved.'
 	),$atts));
 
 	$html = '';
-
-	if( get_option('ssmstitle') and get_option('ssmstitle') != '' ) {
-		$title = get_option('ssmstitle');
-	}
-	if( get_option('ssmsdescription') and get_option('ssmsdescription') != '' ) {
-		$description = get_option('ssmsdescription');
-	}
-	if( get_option('ssmsheadertext') and get_option('ssmsheadertext') != '' ) {
-		$header_text = get_option('ssmsheadertext');
-	}
-	if( get_option('ssmsheadertext2') and get_option('ssmsheadertext2') != '' ) {
-		$header_text2 = get_option('ssmsheadertext2');
-	}
 
 	$html .= '
 	<style>
@@ -61,11 +46,7 @@ function securemessage($atts,$content='')
 		<h3>'.$description.'</h3>
 	';
 
-	if( isset($_SESSION['message_id'] ) ) {
-		$html .= '<p>'.$header_text2.'</p>';
-	} else {
-		$html .= '<p>'.$header_text.'</p>';
-	}
+	$html .= '<p>'.$header_text.'</p>';
 
 	global $wp;
 	$current_url = home_url(add_query_arg(array(),$wp->request));
@@ -73,7 +54,7 @@ function securemessage($atts,$content='')
 	if( $id ) {
 
 		$messageid = $id;
-		$ssms = new SSMS();
+		$ssms = new NTD_SecureMessage();
 
 		$result = $ssms->getMessageById($messageid);
 
@@ -114,11 +95,8 @@ function securemessage($atts,$content='')
 			if ( isset($message) ) {
 				$html .= 'var msg = "'.$message.'";';
 				$html .= 'var msg_decoded = base64_decode(msg);';
-				$html .= 'var sentences = msg_decoded.match(/[^\.!\?]+[\.!\?]+/g);';
+				$html .= 'var sentences = [msg_decoded];';
 				$html .= '
-					if (!sentences){
-						sentences = [msg_decoded];
-					}
 					$("#play").click(function(e){
 						e.preventDefault();
 						var queue = $.Deferred();
