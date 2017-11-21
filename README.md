@@ -1,4 +1,5 @@
 # Wordpress-Secure-Single-Use-Message-Plugin 
+https://wordpress.org/plugins/secure-message/ <br />
 The contents of this message can only be viewed once
 
 === single-use message === <br />
